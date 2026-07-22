@@ -1,0 +1,26 @@
+name = "jju-workshop-system"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Run `wrangler d1 create jju-system-db` and paste the returned database_id below
+# before running `npm run db:migrate:local` / `npm run db:migrate:remote`.
+[[d1_databases]]
+binding = "DB"
+database_name = "jju-system-db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+ENVIRONMENT = "development"
+
+# Set with: wrangler secret put JWT_SECRET
+# [secrets]
+# JWT_SECRET
