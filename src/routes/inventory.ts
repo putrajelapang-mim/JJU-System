@@ -47,21 +47,20 @@ inventory.post('/', requireAuth, async (c) => {
     return err(c, 400, 'name and sell_price are required');
   }
 
+  let minStock = body.min_stock;
+  if (minStock === undefined) {
+    const company = await c.env.DB.prepare('SELECT default_min_stock FROM companies WHERE id = ?')
+      .bind(companyId)
+      .first<{ default_min_stock: number }>();
+    minStock = company?.default_min_stock ?? 0;
+  }
+
   const id = newId('inv');
   await c.env.DB.prepare(
     `INSERT INTO inventory (id, company_id, name, sku, stock_qty, min_stock, buy_price, sell_price)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
-    .bind(
-      id,
-      companyId,
-      body.name,
-      body.sku ?? null,
-      body.stock_qty ?? 0,
-      body.min_stock ?? 0,
-      body.buy_price ?? null,
-      body.sell_price
-    )
+    .bind(id, companyId, body.name, body.sku ?? null, body.stock_qty ?? 0, minStock, body.buy_price ?? null, body.sell_price)
     .run();
 
   const row = await c.env.DB.prepare('SELECT * FROM inventory WHERE id = ?').bind(id).first();

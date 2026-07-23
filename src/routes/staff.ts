@@ -29,6 +29,25 @@ staff.get('/roles', async (c) => {
   return ok(c, results);
 });
 
+staff.post('/roles', requireRole('Owner'), async (c) => {
+  const { companyId } = c.get('auth');
+  const { name } = await c.req.json<{ name?: string }>();
+  if (!name) return err(c, 400, 'name is required');
+  if (['Owner', 'Admin'].includes(name)) return err(c, 400, 'That role name is reserved');
+
+  const existing = await c.env.DB.prepare('SELECT id FROM roles WHERE company_id = ? AND name = ?')
+    .bind(companyId, name)
+    .first();
+  if (existing) return err(c, 409, 'A role with that name already exists');
+
+  const id = newId('role');
+  await c.env.DB.prepare('INSERT INTO roles (id, company_id, name, is_system) VALUES (?, ?, ?, 0)')
+    .bind(id, companyId, name)
+    .run();
+
+  return ok(c, { id, name, is_system: false }, 201);
+});
+
 staff.post('/', requireRole('Owner', 'Admin'), async (c) => {
   const { companyId } = c.get('auth');
   const body = await c.req.json<{ name?: string; email?: string; phone?: string; password?: string; role_id?: string }>();

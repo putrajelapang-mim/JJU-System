@@ -92,6 +92,7 @@ company.patch('/settings', requireRole('Owner', 'Admin'), async (c) => {
     discount_enabled?: boolean;
     discount_type?: 'percentage' | 'fixed';
     discount_value?: number;
+    default_min_stock?: number;
   }>();
 
   if (body.discount_type && !['percentage', 'fixed'].includes(body.discount_type)) {
@@ -104,6 +105,7 @@ company.patch('/settings', requireRole('Owner', 'Admin'), async (c) => {
     discount_enabled: body.discount_enabled === undefined ? undefined : body.discount_enabled ? 1 : 0,
     discount_type: body.discount_type,
     discount_value: body.discount_value,
+    default_min_stock: body.default_min_stock,
   };
   const updates = Object.entries(fieldMap).filter(([, v]) => v !== undefined);
   if (updates.length === 0) return err(c, 400, 'No fields to update');
