@@ -2,15 +2,10 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../middleware/auth';
 import { requireAuth } from '../middleware/auth';
 import { newId } from '../utils/id';
+import { isAllowedImageType, arrayBufferToDataUrl, MAX_IMAGE_BYTES } from '../utils/image';
 import { ok, err } from '../utils/response';
 
 const inventory = new Hono<AppEnv>();
-
-const ALLOWED_IMAGE_TYPES: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-};
 
 inventory.get('/', requireAuth, async (c) => {
   const { companyId } = c.get('auth');
@@ -74,11 +69,7 @@ inventory.get('/:id', requireAuth, async (c) => {
     .bind(id, companyId)
     .first<{ stock_qty: number; min_stock: number; image_url: string | null }>();
   if (!row) return err(c, 404, 'Item not found');
-  return ok(c, {
-    ...row,
-    low_stock: row.stock_qty <= row.min_stock,
-    image_url: row.image_url ? `/api/inventory/${id}/image` : null,
-  });
+  return ok(c, { ...row, low_stock: row.stock_qty <= row.min_stock });
 });
 
 inventory.patch('/:id', requireAuth, async (c) => {
@@ -150,34 +141,17 @@ inventory.put('/:id/image', requireAuth, async (c) => {
   if (!existing) return err(c, 404, 'Item not found');
 
   const contentType = c.req.header('Content-Type') ?? '';
-  const ext = ALLOWED_IMAGE_TYPES[contentType];
-  if (!ext) return err(c, 400, 'Content-Type must be image/png, image/jpeg or image/webp');
+  if (!isAllowedImageType(contentType)) return err(c, 400, 'Content-Type must be image/png, image/jpeg or image/webp');
 
   const body = await c.req.arrayBuffer();
-  const key = `inventory/${id}/${Date.now()}.${ext}`;
-  await c.env.IMAGES.put(key, body, { httpMetadata: { contentType } });
+  if (body.byteLength > MAX_IMAGE_BYTES) return err(c, 400, 'Image too large (max 1.5MB)');
 
-  const imageUrl = `/api/inventory/${id}/image`;
+  const dataUrl = arrayBufferToDataUrl(body, contentType);
   await c.env.DB.prepare("UPDATE inventory SET image_url = ?, updated_at = datetime('now') WHERE id = ?")
-    .bind(key, id)
+    .bind(dataUrl, id)
     .run();
 
-  return ok(c, { id, image_url: imageUrl });
-});
-
-inventory.get('/:id/image', async (c) => {
-  const id = c.req.param('id');
-  const row = await c.env.DB.prepare('SELECT image_url FROM inventory WHERE id = ?')
-    .bind(id)
-    .first<{ image_url: string | null }>();
-  if (!row?.image_url) return err(c, 404, 'No image');
-
-  const object = await c.env.IMAGES.get(row.image_url);
-  if (!object) return err(c, 404, 'No image');
-
-  return new Response(object.body, {
-    headers: { 'Content-Type': object.httpMetadata?.contentType ?? 'application/octet-stream' },
-  });
+  return ok(c, { id, image_url: dataUrl });
 });
 
 export { inventory };

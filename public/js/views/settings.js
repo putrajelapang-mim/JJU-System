@@ -32,15 +32,6 @@ export const settings = {
   },
 };
 
-async function loadImagePreview(el, path) {
-  try {
-    const blob = await api.getBlob(path);
-    el.src = URL.createObjectURL(blob);
-  } catch {
-    /* no image yet */
-  }
-}
-
 async function renderProfile(container, navigate) {
   const company = await api.get('/company');
 
@@ -48,11 +39,11 @@ async function renderProfile(container, navigate) {
     <div class="card" style="text-align:center;">
       <div style="display:flex;gap:1rem;justify-content:center;">
         <div>
-          <img id="logo-preview" style="width:80px;height:80px;object-fit:contain;background:var(--border);border-radius:var(--radius);display:block;" />
+          <img id="logo-preview" src="${company.logo_url || ''}" style="width:80px;height:80px;object-fit:contain;background:var(--border);border-radius:var(--radius);display:block;" />
           <label class="btn secondary" style="margin-top:0.4rem;cursor:pointer;font-size:0.75rem;">Logo<input id="logo-input" type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" /></label>
         </div>
         <div>
-          <img id="letterhead-preview" style="width:80px;height:80px;object-fit:contain;background:var(--border);border-radius:var(--radius);display:block;" />
+          <img id="letterhead-preview" src="${company.letterhead_url || ''}" style="width:80px;height:80px;object-fit:contain;background:var(--border);border-radius:var(--radius);display:block;" />
           <label class="btn secondary" style="margin-top:0.4rem;cursor:pointer;font-size:0.75rem;">Letterhead<input id="letterhead-input" type="file" accept="image/png,image/jpeg,image/webp" style="display:none;" /></label>
         </div>
       </div>
@@ -74,9 +65,6 @@ async function renderProfile(container, navigate) {
       <div class="line-item"><span>Tarikh Renewal</span><span>${company.plan_renewal_date || '-'}</span></div>
     </div>
   `;
-
-  if (company.logo_url) loadImagePreview(container.querySelector('#logo-preview'), company.logo_url.replace('/api', ''));
-  if (company.letterhead_url) loadImagePreview(container.querySelector('#letterhead-preview'), company.letterhead_url.replace('/api', ''));
 
   container.querySelector('#profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();

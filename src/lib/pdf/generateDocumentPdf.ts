@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
-import type { Env } from '../../types';
+import { dataUrlToBytes } from '../../utils/image';
 
 export interface DocLineItem {
   name: string;
@@ -10,7 +10,7 @@ export interface DocLineItem {
 export interface GenerateDocumentInput {
   docType: 'quotation' | 'invoice' | 'resit';
   docNumber: string;
-  company: { name: string; address: string | null; phone: string | null; logoKey: string | null };
+  company: { name: string; address: string | null; phone: string | null; logoDataUrl: string | null };
   customer: { name: string; phone: string | null };
   car: { plate_no: string; model: string | null };
   items: DocLineItem[];
@@ -36,22 +36,20 @@ function money(n: number): string {
   return `RM ${n.toFixed(2)}`;
 }
 
-async function embedLogo(pdfDoc: PDFDocument, env: Env, logoKey: string | null) {
-  if (!logoKey) return null;
-  const object = await env.IMAGES.get(logoKey);
-  if (!object) return null;
-  const bytes = await object.arrayBuffer();
-  const ext = logoKey.split('.').pop();
+async function embedLogo(pdfDoc: PDFDocument, logoDataUrl: string | null) {
+  if (!logoDataUrl) return null;
+  const decoded = dataUrlToBytes(logoDataUrl);
+  if (!decoded) return null;
   try {
-    if (ext === 'png') return await pdfDoc.embedPng(bytes);
-    if (ext === 'jpg' || ext === 'jpeg') return await pdfDoc.embedJpg(bytes);
+    if (decoded.contentType === 'image/png') return await pdfDoc.embedPng(decoded.bytes);
+    if (decoded.contentType === 'image/jpeg') return await pdfDoc.embedJpg(decoded.bytes);
   } catch {
     return null;
   }
   return null;
 }
 
-export async function generateDocumentPdf(env: Env, input: GenerateDocumentInput): Promise<Uint8Array> {
+export async function generateDocumentPdf(input: GenerateDocumentInput): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -61,7 +59,7 @@ export async function generateDocumentPdf(env: Env, input: GenerateDocumentInput
   const pageWidth = page.getWidth();
   let y = page.getHeight() - margin;
 
-  const logo = await embedLogo(pdfDoc, env, input.company.logoKey);
+  const logo = await embedLogo(pdfDoc, input.company.logoDataUrl);
   if (logo) {
     const logoDims = logo.scaleToFit(70, 70);
     page.drawImage(logo, { x: margin, y: y - logoDims.height, width: logoDims.width, height: logoDims.height });
