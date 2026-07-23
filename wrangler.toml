@@ -23,6 +23,11 @@ migrations_dir = "migrations"
 binding = "IMAGES"
 bucket_name = "jju-system-images"
 
+# Run `wrangler r2 bucket create jju-system-docs` before deploying.
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "jju-system-docs"
+
 [vars]
 ENVIRONMENT = "development"
 
