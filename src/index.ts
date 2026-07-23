@@ -10,6 +10,7 @@ import { services } from './routes/services';
 import { jobs } from './routes/jobs';
 import { bookings } from './routes/bookings';
 import { documents } from './routes/documents';
+import { reports } from './routes/reports';
 
 const app = new Hono<AppEnv>();
 
@@ -26,6 +27,7 @@ app.route('/api/services', services);
 app.route('/api/jobs', jobs);
 app.route('/api/bookings', bookings);
 app.route('/api/documents', documents);
+app.route('/api/reports', reports);
 
 app.notFound((c) => c.json({ ok: false, error: 'Not found' }, 404));
 
