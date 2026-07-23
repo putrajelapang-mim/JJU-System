@@ -5,6 +5,7 @@ import { auth } from './routes/auth';
 import { company } from './routes/company';
 import { staff } from './routes/staff';
 import { customers } from './routes/customers';
+import { inventory } from './routes/inventory';
 
 const app = new Hono<AppEnv>();
 
@@ -16,6 +17,7 @@ app.route('/api/auth', auth);
 app.route('/api/company', company);
 app.route('/api/staff', staff);
 app.route('/api/customers', customers);
+app.route('/api/inventory', inventory);
 
 app.notFound((c) => c.json({ ok: false, error: 'Not found' }, 404));
 

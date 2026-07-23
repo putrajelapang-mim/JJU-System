@@ -18,6 +18,11 @@ database_name = "jju-system-db"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
+# Run `wrangler r2 bucket create jju-system-images` before deploying.
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "jju-system-images"
+
 [vars]
 ENVIRONMENT = "development"
 
